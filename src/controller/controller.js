@@ -64,6 +64,6 @@ export const getSummary = async (req, res) => {
     });
   } catch (err) {
     console.log("Error occured" + err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Internal server error" + err });
   }
 };
