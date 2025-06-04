@@ -12,18 +12,44 @@ export const getUserTransaction = async (req, res) => {
   }
 };
 
+// export const postTransaction = async (req, res) => {
+//   try {
+//     const { title, amount, category, user_id } = req.body;
+//     if (!title || !category || !user_id || amount === undefined)
+//       return res.status(400).json({ message: "All fields are required" });
+
+//     const transaction =
+//       await sql`INSERT INTO transactions (title,category,user_id,amount) VALUES (${title},${category},${user_id},${amount}) RETURNING *`;
+//     console.log(transaction);
+//     res.status(201).json(transaction[0]);
+//   } catch (err) {
+//     console.log("Error occured" + err);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
 export const postTransaction = async (req, res) => {
   try {
     const { title, amount, category, user_id } = req.body;
-    if (!title || !category || !user_id || amount === undefined)
-      return res.status(400).json({ message: "All fields are required" });
 
-    const transaction =
-      await sql`INSERT INTO transactions (title,category,user_id,amount) VALUES (${title},${category},${user_id},${amount}) RETURNING *`;
-    console.log(transaction);
+    if (!title || !category || !user_id || amount === undefined) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount)) {
+      return res.status(400).json({ message: "Amount must be a number" });
+    }
+    // Determine type from amount
+    const type = numericAmount >= 0 ? "income" : "expense";
+
+    const transaction = await sql`
+      INSERT INTO transactions (title, category, user_id, amount, type)
+      VALUES (${title}, ${category}, ${user_id}, ${numericAmount}, ${type})
+      RETURNING *;
+    `;
+
     res.status(201).json(transaction[0]);
   } catch (err) {
-    console.log("Error occured" + err);
+    console.error("Error occurred:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -65,5 +91,32 @@ export const getSummary = async (req, res) => {
   } catch (err) {
     console.log("Error occured" + err);
     res.status(500).json({ message: "Internal server error" + err });
+  }
+};
+
+export const getStats = async (req, res) => {
+  try {
+    const { user_id, startDate, endDate } = req.query;
+
+    if (!user_id || !startDate || !endDate) {
+      return res.status(400).json({ message: "Missing required query params" });
+    }
+
+    const results = await sql`
+      SELECT
+        DATE(created_at) AS date,
+        SUM(amount) FILTER (WHERE type = 'income') AS income,
+        SUM(ABS(amount)) FILTER (WHERE type = 'expense') AS expense
+      FROM transactions
+      WHERE user_id = ${user_id}
+        AND created_at BETWEEN ${startDate} AND ${endDate}
+      GROUP BY date
+      ORDER BY date ASC;
+    `;
+
+    res.status(200).json(results);
+  } catch (err) {
+    console.error("Stats error:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -10,6 +10,7 @@ export async function initDB() {
   title VARCHAR(255) NOT NULL,
   amount DECIMAL(10,2) NOT NULL,
   category VARCHAR(255) NOT NULL,
+  type VARCHAR(10) NOT NULL CHECK (type IN ('income', 'expense')),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`;
 
