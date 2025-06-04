@@ -97,21 +97,20 @@ export const getSummary = async (req, res) => {
 export const getStats = async (req, res) => {
   try {
     const { user_id, startDate, endDate } = req.query;
-
     if (!user_id || !startDate || !endDate) {
       return res.status(400).json({ message: "Missing required query params" });
     }
 
     const results = await sql`
       SELECT
-        DATE(created_at) AS date,
-        SUM(amount) FILTER (WHERE type = 'income') AS income,
-        SUM(ABS(amount)) FILTER (WHERE type = 'expense') AS expense
-      FROM transactions
-      WHERE user_id = ${user_id}
-        AND created_at BETWEEN ${startDate} AND ${endDate}
-      GROUP BY date
-      ORDER BY date ASC;
+  DATE(created_at) AS date,
+  SUM(amount) FILTER (WHERE type = 'income') AS income,
+  SUM(ABS(amount)) FILTER (WHERE type = 'expense') AS expense
+FROM transactions
+WHERE user_id = ${user_id}
+  AND created_at BETWEEN ${startDate} AND ${endDate}
+GROUP BY date
+ORDER BY date ASC;
     `;
 
     res.status(200).json(results);
