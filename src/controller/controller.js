@@ -103,16 +103,12 @@ export const getStats = async (req, res) => {
     const forStartDate = `${startDate} 00:00:00`;
     const forEndDate = `${endDate} 23:59:59`;
     const results = await sql`
-       SELECT
-        DATE(created_at) AS date,
-        SUM(amount) FILTER (WHERE type = 'income') AS income,
-        SUM(ABS(amount)) FILTER (WHERE type = 'expense') AS expense
-      FROM transactions
-      WHERE user_id = ${user_id}
-        AND created_at BETWEEN ${forStartDate} AND ${forEndDate}
-      GROUP BY date
-      ORDER BY date ASC;
-    `;
+  SELECT *
+  FROM transactions
+  WHERE user_id = ${user_id}
+    AND created_at BETWEEN ${forStartDate} AND ${forEndDate}
+  ORDER BY created_at ASC;
+`;
 
     res.status(200).json(results);
   } catch (err) {
