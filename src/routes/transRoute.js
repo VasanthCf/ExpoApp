@@ -9,6 +9,7 @@ import {
 } from "./../controller/controller.js";
 
 const router = Router();
+
 router.get("/stats", getStats);
 router.get("/:userId", getUserTransaction);
 router.post("/", postTransaction);

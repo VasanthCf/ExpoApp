@@ -5,20 +5,34 @@ import {
   format,
   addDays,
   isAfter,
-  isBefore,
   addYears,
   parseISO,
   addMonths,
 } from "date-fns";
 
+// export const getUserTransaction = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     const data =
+//       await sql`SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY created_at DESC`;
+//     res.status(200).json(data);
+//   } catch (err) {
+//     console.log("Error occured" + err);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
 export const getUserTransaction = async (req, res) => {
   try {
     const { userId } = req.params;
-    const data =
-      await sql`SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY created_at DESC`;
+    const data = await sql`
+      SELECT * FROM transactions
+      WHERE user_id = ${userId}
+        AND created_at::date = CURRENT_DATE
+      ORDER BY created_at DESC
+    `;
     res.status(200).json(data);
   } catch (err) {
-    console.log("Error occured" + err);
+    console.log("Error occurred: " + err);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -69,24 +83,91 @@ export const deleteTransaction = async (req, res) => {
   }
 };
 
+// export const getSummary = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     const balance =
+//       await sql` SELECT COALESCE(SUM(amount),0) as balance FROM transactions WHERE user_id=${userId}
+//     `;
+//     const expense = await sql`
+//     SELECT COALESCE(SUM(amount),0) as expense FROM transactions WHERE user_id = ${userId} AND amount < 0`;
+//     const income = await sql`
+//     SELECT COALESCE(SUM(amount),0) as income FROM transactions WHERE user_id = ${userId} AND amount > 0`;
+//     res.status(200).json({
+//       balance: balance[0].balance,
+//       income: income[0].income,
+//       expense: expense[0].expense,
+//     });
+//   } catch (err) {
+//     console.log("Error occured" + err);
+//     res.status(500).json({ message: "Internal server error" + err });
+//   }
+// };
+
 export const getSummary = async (req, res) => {
   try {
     const { userId } = req.params;
-    const balance =
-      await sql` SELECT COALESCE(SUM(amount),0) as balance FROM transactions WHERE user_id=${userId}
+    const { period } = req.query; // e.g. "30d", "3m", "6m", "1y"
+
+    let dateCondition = sql``;
+
+    // Build the date condition based on period
+    switch (period) {
+      case "30d":
+        // last 30 days from today (including today)
+        dateCondition = sql`
+          AND created_at >= date_trunc('month', CURRENT_DATE)
+          AND created_at < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
+        `;
+        break;
+      case "3m":
+        // last 3 months from today
+        dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '3 months'`;
+        break;
+      case "6m":
+        // last 6 months from today
+        dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '6 months'`;
+        break;
+      case "1y":
+        // last 1 year from today
+        dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '1 year'`;
+        break;
+      default:
+        // If no valid period passed, get all time data (no date filter)
+        dateCondition = sql``;
+    }
+
+    const balance = await sql`
+      SELECT COALESCE(SUM(amount), 0) AS balance
+      FROM transactions
+      WHERE user_id = ${userId}
+      ${dateCondition}
     `;
+
     const expense = await sql`
-    SELECT COALESCE(SUM(amount),0) as expense FROM transactions WHERE user_id = ${userId} AND amount < 0`;
+      SELECT COALESCE(SUM(amount), 0) AS expense
+      FROM transactions
+      WHERE user_id = ${userId}
+        AND amount < 0
+      ${dateCondition}
+    `;
+
     const income = await sql`
-    SELECT COALESCE(SUM(amount),0) as income FROM transactions WHERE user_id = ${userId} AND amount > 0`;
+      SELECT COALESCE(SUM(amount), 0) AS income
+      FROM transactions
+      WHERE user_id = ${userId}
+        AND amount > 0
+      ${dateCondition}
+    `;
+
     res.status(200).json({
       balance: balance[0].balance,
       income: income[0].income,
       expense: expense[0].expense,
     });
   } catch (err) {
-    console.log("Error occured" + err);
-    res.status(500).json({ message: "Internal server error" + err });
+    console.log("Error occurred: " + err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
