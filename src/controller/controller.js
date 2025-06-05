@@ -23,21 +23,6 @@ export const getUserTransaction = async (req, res) => {
   }
 };
 
-// export const postTransaction = async (req, res) => {
-//   try {
-//     const { title, amount, category, user_id } = req.body;
-//     if (!title || !category || !user_id || amount === undefined)
-//       return res.status(400).json({ message: "All fields are required" });
-
-//     const transaction =
-//       await sql`INSERT INTO transactions (title,category,user_id,amount) VALUES (${title},${category},${user_id},${amount}) RETURNING *`;
-//     console.log(transaction);
-//     res.status(201).json(transaction[0]);
-//   } catch (err) {
-//     console.log("Error occured" + err);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// };
 export const postTransaction = async (req, res) => {
   try {
     const { title, amount, category, user_id } = req.body;
@@ -158,7 +143,6 @@ export const getStats = async (req, res) => {
       GROUP BY label
       ORDER BY label;
     `;
-
     const statsMap = {};
     results.forEach((r) => {
       statsMap[r.label] = {
@@ -188,7 +172,7 @@ export const getStats = async (req, res) => {
         frontColor: "#001055",
       });
       chartData.push({
-        value: data.expense,
+        value: Math.abs(data.expense),
         frontColor: "#ee1919",
       });
 
