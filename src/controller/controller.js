@@ -15,7 +15,6 @@ export const getUserTransactionAll = async (req, res) => {
     const { period = "30d", limit = 100, cursor } = req.query;
 
     const parsedLimit = parseInt(limit) || 100;
-
     // Time period filter
     let dateCondition = sql``;
     switch (period) {
@@ -351,6 +350,23 @@ export const getStats = async (req, res) => {
     res.status(200).json(chartData);
   } catch (err) {
     console.error("getStats error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const deleteAllTransactions = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Delete all transactions for the given user
+    await sql`
+      DELETE FROM transactions
+      WHERE user_id = ${userId}
+    `;
+
+    res.status(200).json({ message: "All transactions deleted successfully" });
+  } catch (err) {
+    console.error("Error occurred while deleting transactions: " + err);
     res.status(500).json({ message: "Internal server error" });
   }
 };
