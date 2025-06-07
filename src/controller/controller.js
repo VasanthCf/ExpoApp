@@ -9,18 +9,104 @@ import {
   parseISO,
   addMonths,
 } from "date-fns";
+export const getUserTransactionAll = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { period = "30d", limit = 100, cursor } = req.query;
 
-// export const getUserTransaction = async (req, res) => {
+    const parsedLimit = parseInt(limit) || 100;
+
+    // Time period filter
+    let dateCondition = sql``;
+    switch (period) {
+      case "30d":
+        dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '30 days'`;
+        break;
+      case "3m":
+        dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '3 months'`;
+        break;
+      case "6m":
+        dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '6 months'`;
+        break;
+      case "1y":
+        dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '1 year'`;
+        break;
+    }
+
+    // Cursor filter for pagination
+    const cursorCondition = cursor ? sql`AND created_at < ${cursor}` : sql``;
+
+    // Fetch paginated data
+    const data = await sql`
+      SELECT * FROM transactions
+      WHERE user_id = ${userId}
+      ${dateCondition}
+      ${cursorCondition}
+      ORDER BY created_at DESC
+      LIMIT ${parsedLimit}
+    `;
+
+    // Total count for hasMore logic
+    const total = await sql`
+      SELECT COUNT(*) FROM transactions
+      WHERE user_id = ${userId}
+      ${dateCondition}
+    `;
+
+    res.status(200).json({
+      data,
+      totalCount: Number(total[0].count),
+    });
+  } catch (err) {
+    console.error("Error occurred:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// export const getUserTransactionAll = async (req, res) => {
 //   try {
 //     const { userId } = req.params;
-//     const data =
-//       await sql`SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY created_at DESC`;
+//     const { period = "30d", limit = 100 } = req.query;
+
+//     const parsedLimit = limit ? parseInt(limit) : 100;
+
+//     // Use tagged template literals to safely build date condition
+//     let dateCondition = sql``;
+
+//     switch (period) {
+//       case "30d":
+//         dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '30 days'`;
+//         break;
+//       case "3m":
+//         dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '3 months'`;
+//         break;
+//       case "6m":
+//         dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '6 months'`;
+//         break;
+//       case "1y":
+//         dateCondition = sql`AND created_at >= CURRENT_DATE - INTERVAL '1 year'`;
+//         break;
+//       default:
+//         // No filter
+//         dateCondition = sql``;
+//     }
+
+//     // Safe, composable query
+//     const data = await sql`
+//       SELECT * FROM transactions
+//       WHERE user_id = ${userId}
+//       ${dateCondition}
+//       ORDER BY created_at DESC
+//       LIMIT ${parsedLimit}
+//     `;
+
 //     res.status(200).json(data);
 //   } catch (err) {
-//     console.log("Error occured" + err);
+//     console.error("Error occurred:", err);
 //     res.status(500).json({ message: "Internal server error" });
 //   }
 // };
+
 export const getUserTransaction = async (req, res) => {
   try {
     const { userId } = req.params;

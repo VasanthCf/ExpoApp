@@ -6,11 +6,13 @@ import {
   deleteTransaction,
   getSummary,
   getStats,
+  getUserTransactionAll,
 } from "./../controller/controller.js";
 
 const router = Router();
 
 router.get("/stats", getStats);
+router.get("/allTransaction/:userId", getUserTransactionAll);
 router.get("/:userId", getUserTransaction);
 router.post("/", postTransaction);
 router.delete("/:id", deleteTransaction);
